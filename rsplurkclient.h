@@ -24,7 +24,7 @@ public:
 
     // 3-step OAuth authentication
     void getRequestToken();
-    const QString getAuthorizationUrl();
+    const QString getAuthorizationUrl(QString deviceName);
     void getAccessToken(QString verifier);
 
     // OAuth method
@@ -44,9 +44,8 @@ protected:
 	QNetworkRequest createRequest(const QString uri, const QStringMap args);
 
 private slots:
-    void requestTokenCallback();
-    void accessTokenCallback();
-    void networkError();
+    void tokenCallback();
+    void networkError(QNetworkReply::NetworkError error);
 
 private:
 	RSPlurkClientPrivate* d_ptr;

@@ -18,6 +18,7 @@ const QString ARG_OAUTH_VERSION = QString("oauth_version");
 const QString ARG_OAUTH_SIG = QString("oauth_signature");
 const QString ARG_OAUTH_SIG_METHOD = QString("oauth_signature_method");
 const QString ARG_OAUTH_CALLBACK = QString("oauth_callback");
+const QString ARG_OAUTH_VERIFIER = QString("oauth_verifier");
 
 const QString OAUTH_VERSION = QString("1.0");
 const QString OAUTH_SIG_METHOD = QString("HMAC-SHA1");
@@ -34,8 +35,7 @@ class RSPlurkClientPrivate {
 public:
 	RSPlurkClientPrivate() {
 		manager = 0;
-		reqTokenReply = 0;
-		accTokenReply = 0;
+		tokenReply = 0;
 	}
 
 	~RSPlurkClientPrivate() {
@@ -46,8 +46,7 @@ public:
 	QString tokenId;
 	QString tokenSecret;
 	QNetworkAccessManager* manager;
-
-	QNetworkReply* reqTokenReply, accTokenReply;
+	QNetworkReply* tokenReply;
 };
 
 explicit RSPlurkClient::RSPlurkClient(QObject *parent = 0)
@@ -91,21 +90,10 @@ void RSPlurkClient::getRequestToken() {
 	QNetworkRequest request = createRequest(REQUEST_TOKEN_URL, args);
 	QNetworkReply* reply = getNetworkAccessManager()->post(request, QByteArray());
 
-	connect(reply, SIGNAL(finished()), this, SLOT(requestTokenCallback()));
+	connect(reply, SIGNAL(finished()), this, SLOT(tokenCallback()));
 	connect(reply, SIGNAL(error(QNetworkReply::NetworkError)), this, SLOT(networkError(QNetworkReply::NetworkError)));
 
-	d->reqTokenReply = reply;
-}
-
-void RSPlurkClient::requestTokenCallback() {
-	Q_D(RSPlurkClient);
-
-	QStringMap values = parseQueryString(QString(d->reqTokenReply->readAll()));
-	d->tokenId = values[ARG_OAUTH_TOKEN];
-	d->tokenSecret = values[ARG_OAUTH_TOKEN_SECRET];
-
-	const QStringPair token(d->tokenId, d->tokenSecret);
-	tokenReceived(token);
+	d->tokenReply = reply;
 }
 
 const QString RSPlurkClient::getAuthorizationUrl(QString deviceName) {
@@ -115,15 +103,32 @@ const QString RSPlurkClient::getAuthorizationUrl(QString deviceName) {
 }
 
 void RSPlurkClient::getAccessToken(QString verifier) {
-	//
+	Q_D(RSPlurkClient);
+
+	const QStringMap args;
+	args[ARG_OAUTH_VERIFIER] = verifier;
+
+	QNetworkRequest request = createRequest(EXCHANGE_TOKEN_URL, args);
+	QNetworkReply* reply = getNetworkAccessManager()->post(request, QByteArray());
+
+	connect(reply, SIGNAL(finished()), this, SLOT(tokenCallback()));
+	connect(reply, SIGNAL(error(QNetworkReply::NetworkError)), this, SLOT(networkError(QNetworkReply::NetworkError)));
+
+	d->tokenReply = reply;
 }
 
-void RSPlurkClient::accessTokenCallback() {
-	//
+void RSPlurkClient::tokenCallback() {
+	Q_D(RSPlurkClient);
+
+	QStringMap values = parseQueryString(QString(d->tokenReply->readAll()));
+	d->tokenId = values[ARG_OAUTH_TOKEN];
+	d->tokenSecret = values[ARG_OAUTH_TOKEN_SECRET];
+
+	const QStringPair token(d->tokenId, d->tokenSecret);
+	tokenReceived(token);
 }
 
 QNetworkReply* RSPlurkClient::sendRequest(const QString endpointUri, const QStringMap args) {
-	
 	const QString uri(API_URL_BASE.arg(endpointUri));
 	
 	QNetworkRequest request = createRequest(uri, args);
