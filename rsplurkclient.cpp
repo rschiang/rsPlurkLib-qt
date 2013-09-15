@@ -107,22 +107,32 @@ QString RSPlurkClient::urlEncode(QString str) {
 	return QUrl::toPercentEncoding(str).constData();
 }
 
-QStringMap RSPlurkClient::parseQueryString(QString queryString) {
-	QByteArray buffer;
+QString RSPlurkClient::urlDecode(QString str) {
+	return QUrl::fromPercentEncoding(str.toAscii());
+}
 
-	int len = queryString.length();
+QStringMap RSPlurkClient::parseQueryString(QString queryString) {
+	QStringMap values;
+	QString buffer = urlDecode(queryString);
+	
+	int len = buffer.size();
 	for (int pos = 0; pos < len; pos++) {
-		char c = queryString[pos];
-		if (c == '+') buffer.append(' ');
-		else if (c == '%' && (pos + 2) < len) {
-			int h = (h >= '0' && h <= '9') ? h - '0' : (h >= 'a' && h <= 'f') ? h - 'a' + 10 :(h >= 'A' && h <= 'F') ? h - 'A' + 10 : -1;
-			int l = (l >= '0' && l <= '9') ? l - '0' : (l >= 'a' && l <= 'f') ? l - 'a' + 10 :(l >= 'A' && l <= 'F') ? l - 'A' + 10 : -1;
-			if (h >= 0 && l >= 0) buffer.append((char)(h << 4 | l));
+		int start_pos = pos;
+		int equ_pos = -1;
+
+		for (; pos < len; pos++) {
+			char cur = buffer[pos];
+			if ((cur == '=') && (equ_pos < 0)) equ_pos = pos;
+			else if (cur == '&') break; 
 		}
-		else buffer.append(c);
+
+		QString name = buffer.mid(start_pos, (equ_pos >= 0) ? equ_pos - start_pos : pos - start_pos);
+		QString value = (equ_pos >= 0) ? buffer.mid(equ_pos + 1, pos - equ_pos - 1) : QString();
+
+		values[urlDecode(name)] = urlDecode(value);
 	}
 
-	return QString(buffer);
+	return values;
 }
 
 QString RSPlurkClient::computeSignature(const QString uri, QStringMap args) {

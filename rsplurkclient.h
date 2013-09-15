@@ -32,8 +32,11 @@ public:
 
 protected:
 	QNetworkAccessManager* getNetworkAccessManager();
-	
+
 	QString computeSignature(const QString uri, QStringMap args);
+	QString urlEncode(QString str);
+	QString urlDecode(QString str);
+	QStringMap parseQueryString(QString queryString);
 	QNetworkRequest createRequest(const QString uri, const QStringMap args);
 
 private:
