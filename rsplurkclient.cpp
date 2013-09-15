@@ -1,5 +1,6 @@
 #include "rsplurkclient.h"
 
+#include <QUrl>
 #include <QStringBuilder>
 #include <QCryptographicHash>
 
@@ -15,9 +16,11 @@ const QString ARG_OAUTH_TIMESTAMP = QString("oauth_timestamp");
 const QString ARG_OAUTH_VERSION = QString("oauth_version");
 const QString ARG_OAUTH_SIG = QString("oauth_signature");
 const QString ARG_OAUTH_SIG_METHOD = QString("oauth_signature_method");
+const QString ARG_OAUTH_CALLBACK = QString("oauth_callback");
 
 const QString OAUTH_VERSION = QString("1.0");
 const QString OAUTH_SIG_METHOD = QString("HMAC-SHA1");
+const QString OAUTH_CALLBACK = QString("oob");
 
 const QString AUTH_HEADER_TEMPLATE = QString("OAuth realm=\"\"");
 const QString AUTH_HEADER_ITEM = QString(", %1=\"%2\"");
@@ -75,7 +78,15 @@ void QNetworkAccessManager* RSPlurkClient::getNetworkAccessManager() {
 }
 
 void RSPlurkClient::getRequestToken() {
-	//
+	Q_D(RSPlurkClient);
+
+	const QStringMap args;
+	args[ARG_OAUTH_CALLBACK] = OAUTH_CALLBACK;
+
+	QNetworkRequest request = createRequest(REQUEST_TOKEN_URL, args);
+	QNetworkReply* reply = getNetworkAccessManager()->post(request, QByteArray());
+
+	// TODO: Process token
 }
 void RSPlurkClient::getAuthorizationUrl() {
 	//
@@ -85,13 +96,33 @@ const QStringPair RSPlurkClient::getAccessToken(QString verifier) {
 }
 
 QNetworkReply* RSPlurkClient::sendRequest(const QString endpointUri, const QStringMap args) {
-	Q_D(RSPlurkClient);
-
+	
 	const QString uri(API_URL_BASE.arg(endpointUri));
 	
 	QNetworkRequest request = createRequest(uri, args);
-	
-	return d->manager->post(request, QByteArray());
+	return getNetworkAccessManager()->post(request, QByteArray());
+}
+
+QString RSPlurkClient::urlEncode(QString str) {
+	return QUrl::toPercentEncoding(str).constData();
+}
+
+QStringMap RSPlurkClient::parseQueryString(QString queryString) {
+	QByteArray buffer;
+
+	int len = queryString.length();
+	for (int pos = 0; pos < len; pos++) {
+		char c = queryString[pos];
+		if (c == '+') buffer.append(' ');
+		else if (c == '%' && (pos + 2) < len) {
+			int h = (h >= '0' && h <= '9') ? h - '0' : (h >= 'a' && h <= 'f') ? h - 'a' + 10 :(h >= 'A' && h <= 'F') ? h - 'A' + 10 : -1;
+			int l = (l >= '0' && l <= '9') ? l - '0' : (l >= 'a' && l <= 'f') ? l - 'a' + 10 :(l >= 'A' && l <= 'F') ? l - 'A' + 10 : -1;
+			if (h >= 0 && l >= 0) buffer.append((char)(h << 4 | l));
+		}
+		else buffer.append(c);
+	}
+
+	return QString(buffer);
 }
 
 QString RSPlurkClient::computeSignature(const QString uri, QStringMap args) {
