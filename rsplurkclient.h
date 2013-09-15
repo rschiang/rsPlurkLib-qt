@@ -3,10 +3,9 @@
 
 #include <QtCore>
 
-#include <QUrl>
 #include <QPair>
 #include <QString>
-#include <QNetworkReply>
+#include <QNetworkAccessManager>
 
 typedef QPair<QString,QString> QStringPair;
 typedef QMap<QString,QString> QStringMap;
@@ -21,6 +20,7 @@ public:
     // Application setup
     void setAppIdentity(const QString appKey, const QString appSecret);
     void setToken(QString tokenId, QString tokenSecret);
+    void setNetworkAccessManager(QNetworkAccessManager* manager);
 
     // 3-step OAuth authentication
     void getRequestToken();
@@ -28,7 +28,13 @@ public:
     const QStringPair getAccessToken(QString verifier);
 
     // OAuth method
-    QNetworkReply* sendRequest(const QString endpointUrl, const QStringMap args);
+    QNetworkReply* sendRequest(const QString endpointUri, const QStringMap args);
+
+protected:
+	QNetworkAccessManager* getNetworkAccessManager();
+	
+	QString computeSignature(const QString uri, QStringMap args);
+	QNetworkRequest createRequest(const QString uri, const QStringMap args);
 
 private:
 	RSPlurkClientPrivate* d_ptr;
