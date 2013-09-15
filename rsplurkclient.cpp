@@ -10,6 +10,7 @@ const QString AUTH_URL_MOBILE_BASE = QString("https://www.plurk.com/m/authorize?
 const QString EXCHANGE_TOKEN_URL = QString("https://www.plurk.com/OAuth/access_token");
 const QString API_URL_BASE = QString("https://www.plurk.com/APP/%1");
 const QString ARG_OAUTH_TOKEN = QString("oauth_token");
+const QString ARG_OAUTH_TOKEN_SECRET = QString("oauth_token_secret");
 const QString ARG_OAUTH_KEY = QString("oauth_consumer_key");
 const QString ARG_OAUTH_NONCE = QString("oauth_nonce");
 const QString ARG_OAUTH_TIMESTAMP = QString("oauth_timestamp");
@@ -33,6 +34,8 @@ class RSPlurkClientPrivate {
 public:
 	RSPlurkClientPrivate() {
 		manager = 0;
+		reqTokenReply = 0;
+		accTokenReply = 0;
 	}
 
 	~RSPlurkClientPrivate() {
@@ -43,6 +46,8 @@ public:
 	QString tokenId;
 	QString tokenSecret;
 	QNetworkAccessManager* manager;
+
+	QNetworkReply* reqTokenReply, accTokenReply;
 };
 
 explicit RSPlurkClient::RSPlurkClient(QObject *parent = 0)
@@ -86,12 +91,34 @@ void RSPlurkClient::getRequestToken() {
 	QNetworkRequest request = createRequest(REQUEST_TOKEN_URL, args);
 	QNetworkReply* reply = getNetworkAccessManager()->post(request, QByteArray());
 
-	// TODO: Process token
+	connect(reply, SIGNAL(finished()), this, SLOT(requestTokenCallback()));
+	connect(reply, SIGNAL(error(QNetworkReply::NetworkError)), this, SLOT(networkError(QNetworkReply::NetworkError)));
+
+	d->reqTokenReply = reply;
 }
-void RSPlurkClient::getAuthorizationUrl() {
+
+void RSPlurkClient::requestTokenCallback() {
+	Q_D(RSPlurkClient);
+
+	QStringMap values = parseQueryString(QString(d->reqTokenReply->readAll()));
+	d->tokenId = values[ARG_OAUTH_TOKEN];
+	d->tokenSecret = values[ARG_OAUTH_TOKEN_SECRET];
+
+	const QStringPair token(d->tokenId, d->tokenSecret);
+	tokenReceived(token);
+}
+
+const QString RSPlurkClient::getAuthorizationUrl(QString deviceName) {
+	Q_D(RSPlurkClient);
+	const QString url = ((deviceName.length() > 0) ? AUTH_URL_MOBILE_BASE : AUTH_URL_BASE).arg(d->tokenId).arg(deviceName);
+	return url;
+}
+
+void RSPlurkClient::getAccessToken(QString verifier) {
 	//
 }
-const QStringPair RSPlurkClient::getAccessToken(QString verifier) {
+
+void RSPlurkClient::accessTokenCallback() {
 	//
 }
 

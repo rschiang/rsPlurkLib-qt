@@ -24,11 +24,15 @@ public:
 
     // 3-step OAuth authentication
     void getRequestToken();
-    void getAuthorizationUrl();
-    const QStringPair getAccessToken(QString verifier);
+    const QString getAuthorizationUrl();
+    void getAccessToken(QString verifier);
 
     // OAuth method
     QNetworkReply* sendRequest(const QString endpointUri, const QStringMap args);
+
+public signals:
+    void tokenReceived(const QStringPair token);
+    void error();
 
 protected:
 	QNetworkAccessManager* getNetworkAccessManager();
@@ -38,6 +42,11 @@ protected:
 	QString urlDecode(QString str);
 	QStringMap parseQueryString(QString queryString);
 	QNetworkRequest createRequest(const QString uri, const QStringMap args);
+
+private slots:
+    void requestTokenCallback();
+    void accessTokenCallback();
+    void networkError();
 
 private:
 	RSPlurkClientPrivate* d_ptr;
