@@ -41,15 +41,15 @@ public:
 	~RSPlurkClientPrivate() {
 	}
 
-	const QString appKey;
-	const QString appSecret;
+    QString appKey;
+    QString appSecret;
 	QString tokenId;
 	QString tokenSecret;
 	QNetworkAccessManager* manager;
 	QNetworkReply* tokenReply;
 };
 
-explicit RSPlurkClient::RSPlurkClient(QObject *parent = 0)
+RSPlurkClient::RSPlurkClient(QObject *parent)
 	: QObject(parent), d_ptr(new RSPlurkClientPrivate()) {
 	//
 }
@@ -74,7 +74,7 @@ void RSPlurkClient::setNetworkAccessManager(QNetworkAccessManager* manager) {
 	d->manager = manager;
 }
 
-void QNetworkAccessManager* RSPlurkClient::getNetworkAccessManager() {
+QNetworkAccessManager* RSPlurkClient::getNetworkAccessManager() {
 	Q_D(RSPlurkClient);
 	if (!d->manager)
 		d->manager = new QNetworkAccessManager(this);
@@ -84,8 +84,8 @@ void QNetworkAccessManager* RSPlurkClient::getNetworkAccessManager() {
 void RSPlurkClient::getRequestToken() {
 	Q_D(RSPlurkClient);
 
-	const QStringMap args;
-	args[ARG_OAUTH_CALLBACK] = OAUTH_CALLBACK;
+    QStringMap args;
+    args[ARG_OAUTH_CALLBACK] = OAUTH_CALLBACK;
 
 	QNetworkRequest request = createRequest(REQUEST_TOKEN_URL, args);
 	QNetworkReply* reply = getNetworkAccessManager()->post(request, QByteArray());
@@ -105,7 +105,7 @@ const QString RSPlurkClient::getAuthorizationUrl(QString deviceName) {
 void RSPlurkClient::getAccessToken(QString verifier) {
 	Q_D(RSPlurkClient);
 
-	const QStringMap args;
+    QStringMap args;
 	args[ARG_OAUTH_VERIFIER] = verifier;
 
 	QNetworkRequest request = createRequest(EXCHANGE_TOKEN_URL, args);
@@ -153,7 +153,7 @@ QStringMap RSPlurkClient::parseQueryString(QString queryString) {
 		int equ_pos = -1;
 
 		for (; pos < len; pos++) {
-			char cur = buffer[pos];
+            QCharRef cur = buffer[pos];
 			if ((cur == '=') && (equ_pos < 0)) equ_pos = pos;
 			else if (cur == '&') break; 
 		}
@@ -204,17 +204,17 @@ QString RSPlurkClient::computeSignature(const QString uri, QStringMap args) {
 	return QString(QCryptographicHash::hash(opad, QCryptographicHash::Sha1).toBase64());
 }
 
-QNetworkRequest RSPlurkClient::createRequest(const QString uri, const QStringMap args) {
+QNetworkRequest RSPlurkClient::createRequest(const QString uri, QStringMap args) {
 	Q_D(RSPlurkClient);
 
-	QString nonce, timestamp, sig;
+    QString nonce, timestamp;
 	args[ARG_OAUTH_KEY] = d->appKey;
 	args[ARG_OAUTH_TOKEN] = d->tokenId;
 	args[ARG_OAUTH_NONCE] = (nonce = QString("%1").arg(qrand()));
 	args[ARG_OAUTH_TIMESTAMP] = (timestamp = QString("%1").arg(QDateTime::currentDateTime().toTime_t()));
 	args[ARG_OAUTH_SIG_METHOD] = OAUTH_SIG_METHOD;
 	args[ARG_OAUTH_VERSION] = OAUTH_VERSION;
-	args[ARG_OAUTH_SIG] = computeSignature(endpointUri, args);
+    args[ARG_OAUTH_SIG] = computeSignature(uri, args);
 
 	QNetworkRequest request;
 
@@ -226,7 +226,7 @@ QNetworkRequest RSPlurkClient::createRequest(const QString uri, const QStringMap
 
 	request.setRawHeader(HEADER_CONTENT_TYPE, MIME_FORM_URLENCODED);
 	request.setRawHeader(HEADER_AUTHORIZATION, authHeader);
-	request.setUrl(endpointUrl);
+    request.setUrl(uri);
 
 	return request;
 }

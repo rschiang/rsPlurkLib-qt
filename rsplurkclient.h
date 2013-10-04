@@ -5,6 +5,7 @@
 
 #include <QPair>
 #include <QString>
+#include <QNetworkReply>
 #include <QNetworkAccessManager>
 
 typedef QPair<QString,QString> QStringPair;
@@ -28,9 +29,9 @@ public:
     void getAccessToken(QString verifier);
 
     // OAuth method
-    QNetworkReply* sendRequest(const QString endpointUri, const QStringMap args);
+    QNetworkReply* sendRequest(const QString endpointUri, QStringMap args);
 
-public signals:
+signals:
     void tokenReceived(const QStringPair token);
     void error();
 
@@ -41,7 +42,7 @@ protected:
 	QString urlEncode(QString str);
 	QString urlDecode(QString str);
 	QStringMap parseQueryString(QString queryString);
-	QNetworkRequest createRequest(const QString uri, const QStringMap args);
+    QNetworkRequest createRequest(const QString uri, QStringMap args);
 
 private slots:
     void tokenCallback();
