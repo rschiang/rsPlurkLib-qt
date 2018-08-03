@@ -1,6 +1,8 @@
 rsPlurkLib-qt
 ==========
 
+**DEPRECATION NOTICE:** [Plurq](https://github.com/rschiang/plurq) is the successor of this project, based on the official [QtNetworkAuth](https://doc.qt.io/qt-5/qtnetworkauth-index.html) module available on Qt 5.9 and higher. This project was intended to be used on Symbian OS / MeeGo Harmattan and is no longer under maintainance.
+
 Introduction
 ------------
 [rsPlurkLib](https://github.com/rschiang/rsPlurkLib/) is a clean, elegant, and minimally assembly-dependent Plurk API 2.0 library. Originally in C#, this is a Qt port rewritten from scratch.
